@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#100b1c">
+<title>Repodrusca</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at top,#482078,#100b1c 68%);color:white;font-family:system-ui,sans-serif;text-align:center}
+main{width:100%;max-width:440px}.badge{display:inline-block;border:1px solid #b78aff;border-radius:30px;padding:7px 12px;color:#e5d4ff;font-size:12px;letter-spacing:2px}
+h1{font-size:clamp(42px,12vw,64px);margin:18px 0 8px;text-shadow:0 0 22px #b45cff}p{color:#ded2ed;line-height:1.5}
+button{width:100%;padding:17px 18px;margin-top:16px;border:0;border-radius:16px;background:#c6ff39;color:#171022;font-size:17px;font-weight:900;cursor:pointer}
+#status{min-height:25px;margin-top:16px;color:#c6ff39;font-weight:700}.small{font-size:12px;color:#b8a9ca}
+</style>
+</head>
+<body>
+<main>
+<span class="badge">MODO TROLL</span>
+<h1>REPODRUSCA</h1>
+<p>¿Listo para la sorpresa? 😈</p>
+<button id="play">🔊 TOCA PARA REPRODUCIR</button>
+<div id="status" role="status">El sonido comienza cuando tocas el botón.</div>
+<p class="small">Una vez iniciado, el sonido no se puede pausar y sigue aunque salgas de la app. Se detiene al cerrarla por completo.</p>
+<audio id="sound" src="./gemi222-gp.mp3" preload="auto" loop></audio>
+</main>
+<script>
+const sound = document.getElementById('sound');
+const play = document.getElementById('play');
+const status = document.getElementById('status');
+let started = false;
+// Servicio en primer plano (solo dentro del APK) para que Android no mate el audio en segundo plano
+async function startBackground() {
+  try {
+    const FS = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ForegroundService;
+    if (!FS) return;
+    try { await FS.requestPermissions(); } catch (e) {}
+    await FS.startForegroundService({
+      id: 1001,
+      title: 'Repodrusca',
+      body: 'Reproduciendo sonido...',
+      smallIcon: 'ic_launcher'
+    });
+  } catch (e) { console.error('Servicio en segundo plano:', e); }
+}
+sound.volume = 1;
+play.addEventListener('click', async () => {
+  if (started) return;
+  try {
+    sound.currentTime = 0;
+    await sound.play();
+    started = true;
+    startBackground();
+    play.disabled = true;
+    play.style.opacity = '.6';
+    play.textContent = '🔊 REPRODUCIENDO...';
+    status.textContent = '¡TE AGARRÓ EL TROLL! 😂';
+  } catch (err) {
+    status.textContent = 'No se pudo cargar el audio. Revisa que el MP3 esté junto a index.html.';
+    console.error('Error reproduciendo audio:', err);
+  }
+});
+// Si algo intenta pausar el audio (controles del sistema, pantalla de bloqueo, etc.), se reanuda
+sound.addEventListener('pause', () => {
+  if (started) sound.play().catch(() => {});
+});
+// Quita los controles multimedia del sistema
+if ('mediaSession' in navigator) {
+  ['pause','stop','seekbackward','seekforward','previoustrack','nexttrack'].forEach(a => {
+    try { navigator.mediaSession.setActionHandler(a, () => {}); } catch (e) {}
+  });
+}
+// Al salir de la app el audio sigue sonando; si el sistema lo pausa, se reanuda
+document.addEventListener('visibilitychange', () => {
+  if (started && sound.paused) sound.play().catch(() => {});
+});
+</script>
+</body>
+</html>

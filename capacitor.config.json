@@ -1,0 +1,6 @@
+{
+  "appId": "com.repodrusca.app",
+  "appName": "Repodrusca",
+  "webDir": "www",
+  "android": { "allowMixedContent": false }
+}
